@@ -9,6 +9,8 @@ MjpegStreamer::MjpegStreamer(const async_web_server_cpp::HttpRequest &request,
   ImageTransportImageStreamer(request, connection, nh), stream_(connection)
 {
   quality_ = request.get_query_param_value_or_default<int>("quality", 95);
+  height_ = request.get_query_param_value_or_default<int>("height", -1);
+  width_ = request.get_query_param_value_or_default<int>("width", -1);
   stream_.sendInitialHeader();
 }
 
@@ -20,6 +22,15 @@ MjpegStreamer::~MjpegStreamer()
 
 void MjpegStreamer::sendImage(const cv::Mat &img, const ros::Time &time)
 {
+
+  cv::Mat processed_img = img;
+  // Check if height and width are valid
+  if (height_ > 0 && width_ > 0) {
+    // Resize the image to the specified values if they are positive
+    cv::resize(img, processed_img, cv::Size(width_, height_), 0, 0, cv::INTER_NEAREST);
+  }
+  // If no resizing is needed (i.e., using native resolution), processed_img remains equal to img
+
   std::vector<int> encode_params;
 #if CV_VERSION_MAJOR >= 3
   encode_params.push_back(cv::IMWRITE_JPEG_QUALITY);
@@ -29,7 +40,7 @@ void MjpegStreamer::sendImage(const cv::Mat &img, const ros::Time &time)
   encode_params.push_back(quality_);
 
   std::vector<uchar> encoded_buffer;
-  cv::imencode(".jpeg", img, encoded_buffer, encode_params);
+  cv::imencode(".jpeg", processed_img, encoded_buffer, encode_params);
 
   stream_.sendPartAndClear(time, "image/jpeg", encoded_buffer);
 }
@@ -56,6 +67,8 @@ JpegSnapshotStreamer::JpegSnapshotStreamer(const async_web_server_cpp::HttpReque
     ImageTransportImageStreamer(request, connection, nh)
 {
   quality_ = request.get_query_param_value_or_default<int>("quality", 95);
+  height_ = request.get_query_param_value_or_default<int>("height", -1);
+  width_ = request.get_query_param_value_or_default<int>("width", -1);
 }
 
 JpegSnapshotStreamer::~JpegSnapshotStreamer()
@@ -66,6 +79,13 @@ JpegSnapshotStreamer::~JpegSnapshotStreamer()
 
 void JpegSnapshotStreamer::sendImage(const cv::Mat &img, const ros::Time &time)
 {
+  cv::Mat processed_img = img;
+  // Check if height and width are valid
+  if (height_ > 0 && width_ > 0) {
+    // Resize the image to the specified values if they are positive
+    cv::resize(img, processed_img, cv::Size(width_, height_), 0, 0, cv::INTER_NEAREST);
+  }
+  // If no resizing is needed (i.e., using native resolution), processed_img remains equal to img
   std::vector<int> encode_params;
 #if CV_VERSION_MAJOR >= 3
   encode_params.push_back(cv::IMWRITE_JPEG_QUALITY);
@@ -75,7 +95,7 @@ void JpegSnapshotStreamer::sendImage(const cv::Mat &img, const ros::Time &time)
   encode_params.push_back(quality_);
 
   std::vector<uchar> encoded_buffer;
-  cv::imencode(".jpeg", img, encoded_buffer, encode_params);
+  cv::imencode(".jpeg", processed_img, encoded_buffer, encode_params);
 
   char stamp[20];
   sprintf(stamp, "%.06lf", time.toSec());

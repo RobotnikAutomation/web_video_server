@@ -23,6 +23,8 @@ protected:
 private:
   MultipartStream stream_;
   int quality_;
+  int height_;
+  int width_;
 };
 
 class MjpegStreamerType : public ImageStreamerType
@@ -45,6 +47,8 @@ protected:
 
 private:
   int quality_;
+  int height_;
+  int width_;
 };
 
 }
