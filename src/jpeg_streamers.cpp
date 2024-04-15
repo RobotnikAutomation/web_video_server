@@ -11,6 +11,7 @@ MjpegStreamer::MjpegStreamer(const async_web_server_cpp::HttpRequest &request,
   quality_ = request.get_query_param_value_or_default<int>("quality", 95);
   height_ = request.get_query_param_value_or_default<int>("height", -1);
   width_ = request.get_query_param_value_or_default<int>("width", -1);
+  use_opencl_ = request.get_query_param_value_or_default<int>("optimization", -1);
   stream_.sendInitialHeader();
 }
 
@@ -24,6 +25,9 @@ void MjpegStreamer::sendImage(const cv::Mat &img, const ros::Time &time)
 {
 
   cv::Mat processed_img = img;
+  
+  cv::ocl::setUseOpenCL(use_opencl_>0 ? true: false);
+  ros::Time lasttime=ros::Time::now();
   // Check if height and width are valid
   if (height_ > 0 && width_ > 0) {
     // Resize the image to the specified values if they are positive
@@ -41,8 +45,15 @@ void MjpegStreamer::sendImage(const cv::Mat &img, const ros::Time &time)
 
   std::vector<uchar> encoded_buffer;
   cv::imencode(".jpeg", processed_img, encoded_buffer, encode_params);
-
+  int encoded_buffer_size = encoded_buffer.size();
   stream_.sendPartAndClear(time, "image/jpeg", encoded_buffer);
+  ros::Time currtime=ros::Time::now();
+  ros::Duration diff=currtime-lasttime;
+  ROS_DEBUG("Buffer size: %i bytes.\t %s %lf s."
+    , encoded_buffer_size
+    ,(!cv::ocl::haveOpenCL() || !cv::ocl::useOpenCL() ? "Time without OpenCL:\t" : "Time with OpenCL:" )
+    , diff.toSec()
+  );
 }
 
 boost::shared_ptr<ImageStreamer> MjpegStreamerType::create_streamer(const async_web_server_cpp::HttpRequest &request,

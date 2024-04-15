@@ -3,6 +3,7 @@
 
 #include <image_transport/image_transport.h>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/core/ocl.hpp>
 #include "web_video_server/image_streamer.h"
 #include "async_web_server_cpp/http_request.hpp"
 #include "async_web_server_cpp/http_connection.hpp"
@@ -23,6 +24,9 @@ protected:
 private:
   MultipartStream stream_;
   int quality_;
+  int height_;
+  int width_;
+  int use_opencl_;
 };
 
 class PngStreamerType : public ImageStreamerType
