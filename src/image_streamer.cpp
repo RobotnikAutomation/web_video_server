@@ -112,9 +112,8 @@ void ImageTransportImageStreamer::imageCallback(const sensor_msgs::ImageConstPtr
     int input_width = img.cols;
     int input_height = img.rows;
 
-    
-    output_width_ = input_width;
-    output_height_ = input_height;
+    output_width_ = (output_width_<=0 && output_height_<=0?input_width:output_width_);
+    output_height_ = (output_width_<=0 && output_height_<=0?input_height:output_height_);
 
     if (invert_)
     {
